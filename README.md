@@ -21,7 +21,20 @@ sample.csv          # Example CSV for testing
 pip install fastapi uvicorn numpy python-multipart
 ```
 
-## Run the API
+## Run everything from the project root
+
+Starts the API (`uvicorn` in `server/`) and the static UI (`python -m http.server` on port **5500** in `frontend/`):
+
+```bash
+python run_dev.py
+```
+
+- **API:** http://127.0.0.1:8000  
+- **UI:** http://127.0.0.1:5500/  
+
+Stop both with **Ctrl+C** in that terminal.
+
+## Run the API only
 
 From the `server` directory:
 
@@ -34,16 +47,16 @@ The API listens on **http://127.0.0.1:8000** by default.
 
 ## Use the UI
 
-1. Start the server (above).
-2. Open `frontend/index.html` in your browser.
+1. Start the server (see above or `run_dev.py`).
+2. Open `frontend/index.html` in your browser, or use the URL from `run_dev.py`.
 
 If the browser blocks requests from `file://` to localhost, serve the frontend folder instead:
 
 ```bash
-python -m http.server 8080 --directory frontend
+python -m http.server 5500 --directory frontend
 ```
 
-Then open **http://127.0.0.1:8080/**.
+Then open **http://127.0.0.1:5500/** (use another port if 5500 is busy).
 
 ## API
 
