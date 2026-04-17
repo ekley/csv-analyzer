@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSV Data Analyzer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      line-height: 1.45;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 1.35rem; font-weight: 600; margin: 0 0 1rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+    input[type="file"] { font-size: 0.9rem; }
+    button {
+      padding: 0.45rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .hint { font-size: 0.85rem; color: #555; margin-bottom: 1.25rem; }
+    .loading { color: #2563eb; font-weight: 500; }
+    .error {
+      background: #fef2f2;
+      color: #b91c1c;
+      padding: 0.65rem 0.85rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    h2 { font-size: 1.05rem; margin: 1.5rem 0 0.6rem; font-weight: 600; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-bottom: 0.5rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.4rem 0.55rem;
+      text-align: right;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    th { background: #f4f4f5; font-weight: 600; }
+    .empty { color: #888; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>CSV Data Analyzer</h1>
+  <p class="hint">Upload a CSV file. Numeric columns are analyzed; non-numeric cells are skipped. Server: <code id="apiLabel"></code></p>
+  <div class="row">
+    <input type="file" id="fileInput" accept=".csv,text/csv" />
+    <button type="button" id="analyzeBtn">Analyze CSV</button>
+  </div>
+  <div id="status"></div>
+  <div id="error"></div>
+  <div id="results"></div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000/analyze";
+
+    document.getElementById("apiLabel").textContent = API_URL;
+
+    const fileInput = document.getElementById("fileInput");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const resultsEl = document.getElementById("results");
+
+    function fmt(v) {
+      if (v === null || v === undefined || Number.isNaN(v)) return "—";
+      if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(6).replace(/\.?0+$/, "");
+      return String(v);
+    }
+
+    function clearOutput() {
+      errorEl.innerHTML = "";
+      resultsEl.innerHTML = "";
+      statusEl.innerHTML = "";
+    }
+
+    analyzeBtn.addEventListener("click", async () => {
+      clearOutput();
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) {
+        errorEl.innerHTML = '<div class="error">Please choose a CSV file first.</div>';
+        return;
+      }
+
+      const form = new FormData();
+      form.append("file", file, file.name);
+
+      analyzeBtn.disabled = true;
+      statusEl.innerHTML = '<span class="loading">Loading...</span>';
+
+      try {
+        const res = await fetch(API_URL, { method: "POST", body: form });
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("Invalid response from server.");
+        }
+        if (!res.ok) {
+          const detail = data && data.detail ? JSON.stringify(data.detail) : text;
+          throw new Error(detail || "Request failed.");
+        }
+
+        statusEl.innerHTML = "";
+        renderResults(data);
+      } catch (e) {
+        statusEl.innerHTML = "";
+        errorEl.innerHTML =
+          '<div class="error">' +
+          (e.message || "Request failed. Is the server running at " + API_URL + "?") +
+          "</div>";
+      } finally {
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    function renderResults(data) {
+      const cols = data.columns || [];
+      const stats = data.stats || [];
+      const corr = data.correlation || [];
+
+      if (!cols.length) {
+        resultsEl.innerHTML = '<p class="empty">No numeric columns found.</p>';
+        return;
+      }
+
+      let html = "<h2>Statistics per column</h2>";
+      html += "<table><thead><tr>";
+      html += "<th>Column</th><th>Mean</th><th>Median</th><th>Std dev</th><th>Min</th><th>Max</th>";
+      html += "</tr></thead><tbody>";
+      for (let i = 0; i < cols.length; i++) {
+        const s = stats[i] || {};
+        html += "<tr>";
+        html += "<td>" + escapeHtml(cols[i]) + "</td>";
+        html += "<td>" + fmt(s.mean) + "</td>";
+        html += "<td>" + fmt(s.median) + "</td>";
+        html += "<td>" + fmt(s.std) + "</td>";
+        html += "<td>" + fmt(s.min) + "</td>";
+        html += "<td>" + fmt(s.max) + "</td>";
+        html += "</tr>";
+      }
+      html += "</tbody></table>";
+
+      html += "<h2>Correlation matrix</h2>";
+      if (!corr.length) {
+        html += '<p class="empty">No correlation data.</p>';
+      } else {
+        html += "<table><thead><tr><th></th>";
+        for (let i = 0; i < cols.length; i++) {
+          html += "<th>" + escapeHtml(cols[i]) + "</th>";
+        }
+        html += "</tr></thead><tbody>";
+        for (let r = 0; r < corr.length; r++) {
+          html += "<tr><th>" + escapeHtml(cols[r] !== undefined ? cols[r] : "Var " + r) + "</th>";
+          const row = corr[r] || [];
+          for (let c = 0; c < row.length; c++) {
+            html += "<td>" + fmt(row[c]) + "</td>";
+          }
+          html += "</tr>";
+        }
+        html += "</tbody></table>";
+      }
+
+      resultsEl.innerHTML = html;
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+  </script>
+</body>
+</html>
