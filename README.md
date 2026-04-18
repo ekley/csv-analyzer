@@ -1,4 +1,4 @@
-<img width="750" height="652" alt="image" src="https://github.com/user-attachments/assets/b0cefa28-c86b-41cc-a13b-36065a6a6eb1" />
+<img width="744" height="649" alt="image" src="https://github.com/user-attachments/assets/a91d43ae-0350-4036-8dc1-c770c2e9834d" />
 
 # CSV Data Analyzer
 
