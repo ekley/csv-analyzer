@@ -161,7 +161,7 @@ async def analyze(file: UploadFile = File(...)) -> Dict[str, Any]:
     if complete.shape[0] < 2:
         corr = np.eye(n_vars)
     else:
-        corr = np.corrcoef(complete.T) # coloumns in csv are features (variables), and corrcoef expects the features to be rows, so we transpose the matrix to get the correlation matrix)
+        corr = np.corrcoef(complete.T) # coloumns in csv are features (variables), and corrcoef expects the features to be rows, so we transpose the matrix to meet the correlation matrix requirements)
         corr = np.asarray(corr)
         if corr.ndim == 0:
             corr = np.array([[1.0]])
