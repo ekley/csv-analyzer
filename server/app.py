@@ -155,12 +155,13 @@ async def analyze(file: UploadFile = File(...)) -> Dict[str, Any]:
                 "max": float(np.max(valid)),
             })
 
+    # Calculate the correlation matrix (how much two variables are related to each other, for exaample as age increases, the weight increases)
     n_vars = matrix.shape[1]
     complete = matrix[~np.isnan(matrix).any(axis=1)]
     if complete.shape[0] < 2:
         corr = np.eye(n_vars)
     else:
-        corr = np.corrcoef(complete.T)
+        corr = np.corrcoef(complete.T) # coloumns in csv are features (variables), and corrcoef expects the features to be rows, so we transpose the matrix to get the correlation matrix)
         corr = np.asarray(corr)
         if corr.ndim == 0:
             corr = np.array([[1.0]])
