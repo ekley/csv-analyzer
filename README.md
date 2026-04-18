@@ -1,3 +1,5 @@
+<img width="744" height="649" alt="image" src="https://github.com/user-attachments/assets/a91d43ae-0350-4036-8dc1-c770c2e9834d" />
+
 # CSV Data Analyzer
 
 Small full-stack app: upload a CSV, server computes numeric statistics and a correlation matrix with **NumPy**, and the browser shows tables in plain **HTML + JavaScript** (no frontend framework).
