@@ -280,6 +280,39 @@
       color: var(--muted);
       text-align: center;
     }
+
+    .corr-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .corr-legend-bar {
+      flex: 1;
+      max-width: 220px;
+      height: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: linear-gradient(
+        90deg,
+        rgb(37, 99, 235) 0%,
+        #ffffff 50%,
+        rgb(220, 38, 38) 100%
+      );
+    }
+
+    table.corr-map tbody td.corr-map-cell {
+      font-weight: 600;
+      min-width: 3.5rem;
+    }
+
+    table.corr-map tbody tr:hover td.corr-map-cell {
+      filter: brightness(0.96);
+    }
   </style>
 </head>
 <body>
@@ -420,7 +453,13 @@
       if (!corr.length) {
         html += '<p class="empty">No correlation data.</p>';
       } else {
-        html += '<div class="table-scroll"><table><thead><tr><th></th>';
+        html +=
+          '<div class="corr-legend" title="Pearson correlation: -1 (negative) to +1 (positive)">' +
+          "<span>−1</span>" +
+          '<span class="corr-legend-bar"></span>' +
+          "<span>+1</span>" +
+          "</div>";
+        html += '<div class="table-scroll"><table class="corr-map"><thead><tr><th></th>';
         for (let i = 0; i < cols.length; i++) {
           html += "<th>" + escapeHtml(cols[i]) + "</th>";
         }
@@ -429,7 +468,17 @@
           html += "<tr><th>" + escapeHtml(cols[r] !== undefined ? cols[r] : "Var " + r) + "</th>";
           const row = corr[r] || [];
           for (let c = 0; c < row.length; c++) {
-            html += "<td>" + fmt(row[c]) + "</td>";
+            const v = row[c];
+            const bg = corrHeatBg(v);
+            const fg = corrHeatFg(v);
+            html +=
+              '<td class="corr-map-cell" style="background:' +
+              bg +
+              ";color:" +
+              fg +
+              '">' +
+              fmt(v) +
+              "</td>";
           }
           html += "</tr>";
         }
@@ -444,6 +493,33 @@
       const d = document.createElement("div");
       d.textContent = s;
       return d.innerHTML;
+    }
+
+    /** Diverging blue (negative) → white (0) → red (positive); matches legend gradient. */
+    function corrHeatBg(v) {
+      if (typeof v !== "number" || Number.isNaN(v)) return "#f1f5f9";
+      const x = Math.max(-1, Math.min(1, v));
+      const blue = [37, 99, 235];
+      const white = [255, 255, 255];
+      const red = [220, 38, 38];
+      let rgb;
+      if (x <= 0) {
+        const t = -x;
+        rgb = white.map(function (w, i) {
+          return Math.round(w + t * (blue[i] - w));
+        });
+      } else {
+        const t = x;
+        rgb = white.map(function (w, i) {
+          return Math.round(w + t * (red[i] - w));
+        });
+      }
+      return "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+    }
+
+    function corrHeatFg(v) {
+      if (typeof v !== "number" || Number.isNaN(v)) return "#0f172a";
+      return Math.abs(v) > 0.55 ? "#ffffff" : "#0f172a";
     }
   </script>
 </body>
